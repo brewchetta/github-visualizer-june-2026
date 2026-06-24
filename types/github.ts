@@ -15,6 +15,12 @@ export interface GitHubCommit {
     login: string;
     avatar_url: string;
   } | null;
+  parents: GitHubCommitParent[];
+}
+
+export interface GitHubCommitParent {
+  sha: string;
+  url: string;
 }
 
 export interface GitHubBranch {
