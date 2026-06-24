@@ -76,18 +76,30 @@ export async function fetchCommits(
   return (await res.json()) as GitHubCommit[];
 }
 
-// TODO (API dev): implement this function.
-// Call GET https://api.github.com/repos/{owner}/{repo}/commits/{sha}
-// The single-commit endpoint returns `stats` and `files[]` (the diff stat) in
-// addition to the base commit fields — see GitHubCommitDetail.
-// Attach Authorization header if process.env.GITHUB_TOKEN is set (raises rate limit to 5k/hr).
-// Throw a descriptive error on non-2xx responses.
+/**
+ * Fetch a single commit by SHA, including diff stats and changed files.
+ * Throws GitHubError on a non-2xx response.
+ */
 export async function fetchCommit(
-  _owner: string,
-  _repo: string,
-  _sha: string
+  owner: string,
+  repo: string,
+  sha: string,
 ): Promise<GitHubCommitDetail> {
-  throw new Error("fetchCommit is not yet implemented");
+  const url =
+    `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` +
+    `/commits/${encodeURIComponent(sha)}`;
+
+  const res = await fetch(url, {
+    headers: githubHeaders(),
+    next: { revalidate: 60 },
+  });
+
+  if (!res.ok) {
+    const detail = await readErrorDetail(res);
+    throw new GitHubError(`GitHub API ${res.status}: ${detail}`, res.status, url);
+  }
+
+  return (await res.json()) as GitHubCommitDetail;
 }
 
 /**
