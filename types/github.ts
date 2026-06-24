@@ -16,3 +16,9 @@ export interface GitHubCommit {
     avatar_url: string;
   } | null;
 }
+
+// Error body returned by app/api/commits/route.ts
+export interface ApiError {
+  error: string;
+  status?: number;
+}

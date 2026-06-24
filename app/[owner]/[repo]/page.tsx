@@ -1,4 +1,5 @@
 import CommitList from "@/components/CommitList";
+import { fetchCommits } from "@/lib/github";
 
 interface Props {
   params: Promise<{ owner: string; repo: string }>;
@@ -6,10 +7,7 @@ interface Props {
 
 export default async function CommitsPage({ params }: Props) {
   const { owner, repo } = await params;
-
-  // TODO (API dev): replace the empty array with:
-  //   const commits = await fetchCommits(owner, repo);
-  // Import fetchCommits from "@/lib/github" once it's implemented.
+  const commits = await fetchCommits(owner, repo);
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
@@ -21,7 +19,7 @@ export default async function CommitsPage({ params }: Props) {
           Recent commits
         </p>
       </header>
-      <CommitList commits={[]} />
+      <CommitList commits={commits} />
     </main>
   );
 }
