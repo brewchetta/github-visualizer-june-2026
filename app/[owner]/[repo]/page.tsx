@@ -1,31 +1,82 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import CommitList from "@/components/CommitList";
+import Pagination from "@/components/Pagination";
 import BranchSelector from "@/components/BranchSelector";
-import { fetchBranches } from "@/lib/github";
-import type { GitHubBranch } from "@/types/github";
+import { fetchCommits, fetchBranches } from "@/lib/github";
+import type { GitHubCommit, GitHubBranch } from "@/types/github";
+
+// Must match the per_page used by fetchCommits in lib/github.ts. A full page of
+// results implies there may be another page; fewer means we're at the end.
+const PER_PAGE = 30;
 
 interface Props {
   params: Promise<{ owner: string; repo: string }>;
-  searchParams: Promise<{ branch?: string }>;
+  searchParams: Promise<{ page?: string; branch?: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { owner, repo } = await params;
+  const title = `${owner}/${repo} · Commits`;
+  const description = `Browse the recent commit history of ${owner}/${repo} on GitHub.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "GitHub Commit Visualizer",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
+}
+
+function parsePage(raw?: string): number {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : 1;
+}
+
+// Until lib/github.ts (API dev) exposes typed errors, classify a 404 by message.
+// This runs on the server, where the original error message is intact.
+function isNotFoundError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message.toLowerCase() : "";
+  return msg.includes("404") || msg.includes("not found");
 }
 
 export default async function CommitsPage({ params, searchParams }: Props) {
   const { owner, repo } = await params;
-  const { branch } = await searchParams;
+  const { page: pageParam, branch } = await searchParams;
+  const page = parsePage(pageParam);
 
-  // TODO (API dev): replace the empty array with:
-  //   const commits = await fetchCommits(owner, repo, 1, branch);
-  // Import fetchCommits from "@/lib/github" once it's implemented.
-  // The selected `branch` (if any) should be passed through as the `sha` param.
+  let commits: GitHubCommit[];
+  try {
+    commits = await fetchCommits(owner, repo, page);
+  } catch (err) {
+    if (isNotFoundError(err)) notFound(); // -> not-found.tsx
+    throw err; // -> error.tsx (rate limit / unexpected)
+  }
 
-  // Branch list is non-critical: if the GitHub call fails (rate limit, missing
-  // repo), render the page without the selector. Error UI is the UX dev's domain.
+  // Branch list is non-critical: if the GitHub call fails (rate limit, etc.),
+  // render without the selector. The fetchCommits call above already routes the
+  // hard failures (404 / rate limit) through the error boundary.
+  // TODO (API dev): once fetchCommits accepts a branch/sha argument, pass
+  // `branch` through so the commit list filters by the selected branch.
   let branches: GitHubBranch[] = [];
   try {
     branches = await fetchBranches(owner, repo);
   } catch {
     branches = [];
   }
+
+  const hasPrev = page > 1;
+  const hasNext = commits.length === PER_PAGE;
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
@@ -51,7 +102,16 @@ export default async function CommitsPage({ params, searchParams }: Props) {
           Recent commits
         </p>
       </header>
-      <CommitList commits={[]} />
+
+      <CommitList commits={commits} owner={owner} repo={repo} />
+
+      <Pagination
+        owner={owner}
+        repo={repo}
+        page={page}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+      />
     </main>
   );
 }

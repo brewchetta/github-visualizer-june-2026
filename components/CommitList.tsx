@@ -3,9 +3,11 @@ import CommitCard from "./CommitCard";
 
 interface Props {
   commits: GitHubCommit[];
+  owner: string;
+  repo: string;
 }
 
-export default function CommitList({ commits }: Props) {
+export default function CommitList({ commits, owner, repo }: Props) {
   if (commits.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-600">
@@ -20,7 +22,7 @@ export default function CommitList({ commits }: Props) {
     <ul className="flex flex-col gap-3">
       {commits.map((commit) => (
         <li key={commit.sha}>
-          <CommitCard commit={commit} />
+          <CommitCard commit={commit} owner={owner} repo={repo} />
         </li>
       ))}
     </ul>
