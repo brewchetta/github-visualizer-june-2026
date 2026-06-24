@@ -91,12 +91,20 @@ export default async function CommitsPage({ params, searchParams }: Props) {
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
             {owner}/{repo}
           </h1>
-          <BranchSelector
-            owner={owner}
-            repo={repo}
-            branches={branches}
-            current={branch}
-          />
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/${owner}/${repo}/graph`}
+              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              View as graph
+            </Link>
+            <BranchSelector
+              owner={owner}
+              repo={repo}
+              branches={branches}
+              current={branch}
+            />
+          </div>
         </div>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Recent commits

@@ -58,10 +58,11 @@ export async function fetchCommits(
   owner: string,
   repo: string,
   page = 1,
+  perPage = PER_PAGE,
 ): Promise<GitHubCommit[]> {
   const url =
     `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` +
-    `/commits?per_page=${PER_PAGE}&page=${page}`;
+    `/commits?per_page=${perPage}&page=${page}`;
 
   const res = await fetch(url, {
     headers: githubHeaders(),
