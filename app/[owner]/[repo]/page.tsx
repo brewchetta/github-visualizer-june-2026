@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import CommitList from "@/components/CommitList";
 import Pagination from "@/components/Pagination";
-import { fetchCommits } from "@/lib/github";
-import type { GitHubCommit } from "@/types/github";
+import BranchSelector from "@/components/BranchSelector";
+import { fetchCommits, fetchBranches } from "@/lib/github";
+import type { GitHubCommit, GitHubBranch } from "@/types/github";
 
 // Must match the per_page used by fetchCommits in lib/github.ts. A full page of
 // results implies there may be another page; fewer means we're at the end.
@@ -11,7 +13,7 @@ const PER_PAGE = 30;
 
 interface Props {
   params: Promise<{ owner: string; repo: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; branch?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -50,8 +52,8 @@ function isNotFoundError(err: unknown): boolean {
 
 export default async function CommitsPage({ params, searchParams }: Props) {
   const { owner, repo } = await params;
-  const commits = await fetchCommits(owner, repo);
-  const page = parsePage((await searchParams).page);
+  const { page: pageParam, branch } = await searchParams;
+  const page = parsePage(pageParam);
 
   let commits: GitHubCommit[];
   try {
@@ -61,15 +63,41 @@ export default async function CommitsPage({ params, searchParams }: Props) {
     throw err; // -> error.tsx (rate limit / unexpected)
   }
 
+  // Branch list is non-critical: if the GitHub call fails (rate limit, etc.),
+  // render without the selector. The fetchCommits call above already routes the
+  // hard failures (404 / rate limit) through the error boundary.
+  // TODO (API dev): once fetchCommits accepts a branch/sha argument, pass
+  // `branch` through so the commit list filters by the selected branch.
+  let branches: GitHubBranch[] = [];
+  try {
+    branches = await fetchBranches(owner, repo);
+  } catch {
+    branches = [];
+  }
+
   const hasPrev = page > 1;
   const hasNext = commits.length === PER_PAGE;
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
+      <Link
+        href="/"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+      >
+        ← Back
+      </Link>
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {owner}/{repo}
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+            {owner}/{repo}
+          </h1>
+          <BranchSelector
+            owner={owner}
+            repo={repo}
+            branches={branches}
+            current={branch}
+          />
+        </div>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Recent commits
         </p>
@@ -84,7 +112,6 @@ export default async function CommitsPage({ params, searchParams }: Props) {
         hasPrev={hasPrev}
         hasNext={hasNext}
       />
-
     </main>
   );
 }

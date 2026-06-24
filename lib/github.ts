@@ -1,4 +1,8 @@
-import type { GitHubCommit, GitHubCommitDetail } from "@/types/github";
+import type {
+  GitHubCommit,
+  GitHubCommitDetail,
+  GitHubBranch,
+} from "@/types/github";
 
 const GITHUB_API = "https://api.github.com";
 const PER_PAGE = 30;
@@ -19,6 +23,32 @@ export class GitHubError extends Error {
   }
 }
 
+// Shared request headers. Attaches the optional GITHUB_TOKEN to raise the rate
+// limit from 60 to 5,000 requests/hr.
+function githubHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "github-commit-visualizer", // GitHub rejects requests without UA
+  };
+  if (process.env.GITHUB_TOKEN) {
+    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  }
+  return headers;
+}
+
+// Reads a descriptive error message from a non-2xx GitHub response body.
+async function readErrorDetail(res: Response): Promise<string> {
+  let detail = res.statusText;
+  try {
+    const body = (await res.json()) as { message?: string };
+    if (body?.message) detail = body.message;
+  } catch {
+    /* non-JSON error body; keep statusText */
+  }
+  return detail;
+}
+
 /**
  * Fetch a page of commits for a public GitHub repository.
  * Attaches an Authorization header when GITHUB_TOKEN is set (raises the rate
@@ -33,25 +63,13 @@ export async function fetchCommits(
     `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` +
     `/commits?per_page=${PER_PAGE}&page=${page}`;
 
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "github-commit-visualizer", // GitHub rejects requests without UA
-  };
-  if (process.env.GITHUB_TOKEN) {
-    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
-  }
-
-  const res = await fetch(url, { headers, next: { revalidate: 60 } });
+  const res = await fetch(url, {
+    headers: githubHeaders(),
+    next: { revalidate: 60 },
+  });
 
   if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = (await res.json()) as { message?: string };
-      if (body?.message) detail = body.message;
-    } catch {
-      /* non-JSON error body; keep statusText */
-    }
+    const detail = await readErrorDetail(res);
     throw new GitHubError(`GitHub API ${res.status}: ${detail}`, res.status, url);
   }
 
@@ -70,4 +88,29 @@ export async function fetchCommit(
   _sha: string
 ): Promise<GitHubCommitDetail> {
   throw new Error("fetchCommit is not yet implemented");
+}
+
+/**
+ * Fetch the list of branches for a public GitHub repository.
+ * Mirrors fetchCommits' auth + error handling. Throws GitHubError on non-2xx.
+ */
+export async function fetchBranches(
+  owner: string,
+  repo: string,
+): Promise<GitHubBranch[]> {
+  const url =
+    `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` +
+    `/branches?per_page=100`;
+
+  const res = await fetch(url, {
+    headers: githubHeaders(),
+    next: { revalidate: 60 },
+  });
+
+  if (!res.ok) {
+    const detail = await readErrorDetail(res);
+    throw new GitHubError(`GitHub API ${res.status}: ${detail}`, res.status, url);
+  }
+
+  return (await res.json()) as GitHubBranch[];
 }

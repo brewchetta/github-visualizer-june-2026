@@ -17,10 +17,21 @@ export interface GitHubCommit {
   } | null;
 }
 
+export interface GitHubBranch {
+  name: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
+  protected: boolean;
+}
+
 // Error body returned by app/api/commits/route.ts
 export interface ApiError {
   error: string;
   status?: number;
+}
+
 export interface GitHubCommitFile {
   filename: string;
   status: string; // "added" | "modified" | "removed" | "renamed" | ...
