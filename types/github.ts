@@ -16,3 +16,12 @@ export interface GitHubCommit {
     avatar_url: string;
   } | null;
 }
+
+export interface GitHubBranch {
+  name: string;
+  commit: {
+    sha: string;
+    url: string;
+  };
+  protected: boolean;
+}
