@@ -21,7 +21,7 @@ export default async function CommitsPage({ params }: Props) {
           Recent commits
         </p>
       </header>
-      <CommitList commits={[]} />
+      <CommitList commits={[]} owner={owner} repo={repo} />
     </main>
   );
 }
