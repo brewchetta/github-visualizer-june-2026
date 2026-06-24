@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GitHub Commit Visualizer
 
-## Getting Started
+A Next.js app for exploring commit history on any public GitHub repository. Enter an owner and repo name, and browse recent commits.
 
-First, run the development server:
+Built as a collaborative scaffold — see the [ownership map](#ownership-map) below for who owns what.
+
+## Getting started
 
 ```bash
+cp .env.local.example .env.local   # optional: add a GitHub token for higher rate limits
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000), enter a repo (e.g. `vercel` / `next.js`), and you'll land on `/vercel/next.js`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Next.js 16](https://nextjs.org) — App Router
+- [TypeScript](https://www.typescriptlang.org)
+- [Tailwind CSS](https://tailwindcss.com)
+- [GitHub REST API](https://docs.github.com/en/rest/commits/commits)
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+  page.tsx                  Home — search form
+  [owner]/[repo]/page.tsx   Commits list for a repo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+components/
+  SearchForm.tsx            Repo search input
+  CommitList.tsx            List of commits
+  CommitCard.tsx            Individual commit row
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+lib/
+  github.ts                 GitHub API client (stub — see below)
 
-## Deploy on Vercel
+types/
+  github.ts                 Shared TypeScript interfaces
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## GitHub token
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Without a token, the GitHub API allows 60 requests/hr per IP. To raise that to 5,000/hr, create a [personal access token](https://github.com/settings/tokens) (no scopes needed for public repos) and add it to `.env.local`:
+
+```
+GITHUB_TOKEN=your_token_here
+```
+
+## Ownership map
+
+This project is split across four developers:
+
+| Feature | Files |
+|---|---|
+| **API layer** | `lib/github.ts`, `app/api/commits/` |
+| **Commit display** | `components/CommitCard`, `components/CommitList`, `app/[owner]/[repo]/[sha]/` |
+| **Search & navigation** | `components/SearchForm`, branch selector |
+| **UX & infrastructure** | Loading states, error handling, pagination |
+
+## Current status
+
+The API layer (`lib/github.ts`) is a stub — commits render as an empty placeholder until it is implemented. All routing and UI components are in place.
