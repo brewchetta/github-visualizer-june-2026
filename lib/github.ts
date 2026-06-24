@@ -1,4 +1,4 @@
-import type { GitHubCommit } from "@/types/github";
+import type { GitHubCommit, GitHubCommitDetail } from "@/types/github";
 
 const GITHUB_API = "https://api.github.com";
 const PER_PAGE = 30;
@@ -56,4 +56,18 @@ export async function fetchCommits(
   }
 
   return (await res.json()) as GitHubCommit[];
+}
+
+// TODO (API dev): implement this function.
+// Call GET https://api.github.com/repos/{owner}/{repo}/commits/{sha}
+// The single-commit endpoint returns `stats` and `files[]` (the diff stat) in
+// addition to the base commit fields — see GitHubCommitDetail.
+// Attach Authorization header if process.env.GITHUB_TOKEN is set (raises rate limit to 5k/hr).
+// Throw a descriptive error on non-2xx responses.
+export async function fetchCommit(
+  _owner: string,
+  _repo: string,
+  _sha: string
+): Promise<GitHubCommitDetail> {
+  throw new Error("fetchCommit is not yet implemented");
 }
