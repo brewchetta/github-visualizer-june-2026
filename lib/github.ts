@@ -1,15 +1,61 @@
 import type { GitHubCommit, GitHubCommitDetail } from "@/types/github";
 
-// TODO (API dev): implement this function.
-// Call GET https://api.github.com/repos/{owner}/{repo}/commits?page={page}&per_page=30
-// Attach Authorization header if process.env.GITHUB_TOKEN is set (raises rate limit to 5k/hr).
-// Throw a descriptive error on non-2xx responses.
+const GITHUB_API = "https://api.github.com";
+const PER_PAGE = 30;
+
+/**
+ * Error thrown when the GitHub API responds with a non-2xx status.
+ * Carries the HTTP `status` so callers (e.g. error boundaries) can distinguish
+ * 404 (repo not found) from 403/429 (rate limit) and render accordingly.
+ */
+export class GitHubError extends Error {
+  readonly status: number;
+  readonly url: string;
+  constructor(message: string, status: number, url: string) {
+    super(message);
+    this.name = "GitHubError";
+    this.status = status;
+    this.url = url;
+  }
+}
+
+/**
+ * Fetch a page of commits for a public GitHub repository.
+ * Attaches an Authorization header when GITHUB_TOKEN is set (raises the rate
+ * limit from 60 to 5,000 req/hr). Throws GitHubError on a non-2xx response.
+ */
 export async function fetchCommits(
-  _owner: string,
-  _repo: string,
-  _page = 1
+  owner: string,
+  repo: string,
+  page = 1,
 ): Promise<GitHubCommit[]> {
-  throw new Error("fetchCommits is not yet implemented");
+  const url =
+    `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` +
+    `/commits?per_page=${PER_PAGE}&page=${page}`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "github-commit-visualizer", // GitHub rejects requests without UA
+  };
+  if (process.env.GITHUB_TOKEN) {
+    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  }
+
+  const res = await fetch(url, { headers, next: { revalidate: 60 } });
+
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (body?.message) detail = body.message;
+    } catch {
+      /* non-JSON error body; keep statusText */
+    }
+    throw new GitHubError(`GitHub API ${res.status}: ${detail}`, res.status, url);
+  }
+
+  return (await res.json()) as GitHubCommit[];
 }
 
 // TODO (API dev): implement this function.

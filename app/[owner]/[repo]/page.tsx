@@ -50,6 +50,7 @@ function isNotFoundError(err: unknown): boolean {
 
 export default async function CommitsPage({ params, searchParams }: Props) {
   const { owner, repo } = await params;
+  const commits = await fetchCommits(owner, repo);
   const page = parsePage((await searchParams).page);
 
   let commits: GitHubCommit[];
@@ -73,11 +74,8 @@ export default async function CommitsPage({ params, searchParams }: Props) {
           Recent commits
         </p>
       </header>
-<<<<<<< feat/commit-display
-      <CommitList commits={[]} owner={owner} repo={repo} />
-=======
 
-      <CommitList commits={commits} />
+      <CommitList commits={commits} owner={owner} repo={repo} />
 
       <Pagination
         owner={owner}
@@ -86,7 +84,7 @@ export default async function CommitsPage({ params, searchParams }: Props) {
         hasPrev={hasPrev}
         hasNext={hasNext}
       />
->>>>>>> main
+
     </main>
   );
 }

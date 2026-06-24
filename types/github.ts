@@ -17,6 +17,10 @@ export interface GitHubCommit {
   } | null;
 }
 
+// Error body returned by app/api/commits/route.ts
+export interface ApiError {
+  error: string;
+  status?: number;
 export interface GitHubCommitFile {
   filename: string;
   status: string; // "added" | "modified" | "removed" | "renamed" | ...
