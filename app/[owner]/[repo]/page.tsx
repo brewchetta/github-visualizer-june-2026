@@ -73,6 +73,9 @@ export default async function CommitsPage({ params, searchParams }: Props) {
           Recent commits
         </p>
       </header>
+<<<<<<< feat/commit-display
+      <CommitList commits={[]} owner={owner} repo={repo} />
+=======
 
       <CommitList commits={commits} />
 
@@ -83,6 +86,7 @@ export default async function CommitsPage({ params, searchParams }: Props) {
         hasPrev={hasPrev}
         hasNext={hasNext}
       />
+>>>>>>> main
     </main>
   );
 }
